@@ -10,7 +10,10 @@ const transporter = nodemailer.createTransport({
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000
 });
 
 const FROM = process.env.SMTP_FROM || 'JONIKWIRIA Academy <info@jonikwiria.com>';
@@ -574,6 +577,247 @@ async function sendSubscriberBroadcastEmail({ to, name, subject, title, type, co
   return sendMail(to, subject, html);
 }
 
+/**
+ * Send Email Verification Link to newly registered user
+ * @param {object} user - User object { id, firstName, lastName, email }
+ * @param {string} token - Verification token
+ * @param {string} [clientOrigin] - Frontend base URL (e.g. http://10.252.40.78:5173 or http://localhost:5173)
+ */
+async function sendVerificationEmail(user, token, clientOrigin) {
+  const baseUrl = clientOrigin || process.env.CLIENT_URL || 'http://localhost:5173';
+  const verifyUrl = `${baseUrl.replace(/\/$/, '')}/verify-email?token=${token}`;
+  const subject = `Verify Your Email Address - JONIKWIRIA Academy`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0b132b;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0b132b;padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#111c44;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(0,0,0,0.5);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background:linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);padding:36px 40px;text-align:center;border-bottom:1px solid #334155;">
+              <div style="display:inline-block;padding:8px 18px;border-radius:20px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">
+                Account Security &amp; Activation
+              </div>
+              <h1 style="color:#ffffff;font-size:24px;font-weight:800;margin:0 0 8px 0;letter-spacing:-0.02em;">
+                Verify Your Email Address
+              </h1>
+              <p style="color:#94a3b8;font-size:14px;margin:0;">
+                Welcome to JONIKWIRIA Technology &amp; Learning Platform
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding:36px 40px;color:#cbd5e1;font-size:15px;line-height:1.7;">
+              <p style="margin:0 0 16px 0;font-size:17px;color:#f8fafc;">
+                Hello <strong>${user.firstName || 'Learner'}</strong>,
+              </p>
+              <p style="margin:0 0 20px 0;">
+                Thank you for registering with <strong>JONIKWIRIA</strong>. To complete your registration and unlock full access to our courses, phase-locked student dashboard, quizzes, and verified certificates, please click the button below to confirm your email:
+              </p>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${verifyUrl}" target="_blank" style="background:linear-gradient(135deg, #007bff 0%, #0056b3 100%);color:#ffffff;padding:15px 36px;font-size:15px;font-weight:800;text-decoration:none;border-radius:10px;display:inline-block;box-shadow:0 6px 20px rgba(0,123,255,0.4);letter-spacing:0.02em;">
+                      Verify &amp; Activate Account &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Expiry Alert -->
+              <div style="background:rgba(234,179,8,0.1);border-left:4px solid #eab308;padding:14px 18px;border-radius:6px;margin:24px 0;font-size:13px;color:#fef08a;line-height:1.5;">
+                <strong>Security Notice:</strong> This activation link will expire in <strong>24 hours</strong>. If you did not create an account on JONIKWIRIA, please ignore this email.
+              </div>
+
+              <!-- Fallback Link -->
+              <p style="margin:24px 0 6px 0;font-size:12px;color:#94a3b8;">
+                If the button above does not work, copy and paste this link into your browser:
+              </p>
+              <div style="background:#0b132b;border:1px solid #1e293b;border-radius:8px;padding:10px 14px;font-size:11px;color:#60a5fa;word-break:break-all;font-family:monospace;">
+                ${verifyUrl}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#080c14;padding:22px 40px;border-top:1px solid #1e293b;text-align:center;font-size:11px;color:#64748b;">
+              <p style="margin:0 0 6px 0;font-weight:700;color:#94a3b8;">JONIKWIRIA Technology Limited</p>
+              <p style="margin:0 0 10px 0;">Building People. Building Technology.</p>
+              <p style="margin:0;color:#475569;">
+                Need assistance? Contact support at <a href="mailto:info@jonikwiria.com" style="color:#60a5fa;text-decoration:none;">info@jonikwiria.com</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  return sendMail(user.email, subject, html);
+}
+
+/**
+ * Send Password Reset Link to user
+ * @param {object} user - User object { id, firstName, email }
+ * @param {string} token - Password reset token
+ * @param {string} [clientOrigin] - Frontend base URL
+ */
+async function sendPasswordResetEmail(user, token, clientOrigin) {
+  const baseUrl = clientOrigin || process.env.CLIENT_URL || 'http://localhost:5173';
+  const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
+  const subject = `Reset Your JONIKWIRIA Password`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0b132b;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0b132b;padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#111c44;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(0,0,0,0.5);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background:linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);padding:36px 40px;text-align:center;border-bottom:1px solid #334155;">
+              <div style="display:inline-block;padding:8px 18px;border-radius:20px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">
+                Password Recovery
+              </div>
+              <h1 style="color:#ffffff;font-size:24px;font-weight:800;margin:0 0 8px 0;letter-spacing:-0.02em;">
+                Reset Your Password
+              </h1>
+              <p style="color:#94a3b8;font-size:14px;margin:0;">
+                JONIKWIRIA Authentication &amp; Security Services
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding:36px 40px;color:#cbd5e1;font-size:15px;line-height:1.7;">
+              <p style="margin:0 0 16px 0;font-size:17px;color:#f8fafc;">
+                Hello <strong>${user.firstName || 'User'}</strong>,
+              </p>
+              <p style="margin:0 0 20px 0;">
+                We received a request to reset the password for your JONIKWIRIA account (<span style="color:#60a5fa;font-weight:600;">${user.email}</span>). Click the button below to choose a new, secure password:
+              </p>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${resetUrl}" target="_blank" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:#ffffff;padding:15px 36px;font-size:15px;font-weight:800;text-decoration:none;border-radius:10px;display:inline-block;box-shadow:0 6px 20px rgba(239,68,68,0.4);letter-spacing:0.02em;">
+                      Reset Password Now &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Expiry Alert -->
+              <div style="background:rgba(239,68,68,0.1);border-left:4px solid #ef4444;padding:14px 18px;border-radius:6px;margin:24px 0;font-size:13px;color:#fca5a5;line-height:1.5;">
+                <strong>Notice:</strong> This password reset link is valid for <strong>1 hour</strong>. If you did not make this request, you can safely ignore this email; your account remains secure.
+              </div>
+
+              <!-- Fallback Link -->
+              <p style="margin:24px 0 6px 0;font-size:12px;color:#94a3b8;">
+                If the button above does not work, copy and paste this link into your browser:
+              </p>
+              <div style="background:#0b132b;border:1px solid #1e293b;border-radius:8px;padding:10px 14px;font-size:11px;color:#60a5fa;word-break:break-all;font-family:monospace;">
+                ${resetUrl}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#080c14;padding:22px 40px;border-top:1px solid #1e293b;text-align:center;font-size:11px;color:#64748b;">
+              <p style="margin:0 0 6px 0;font-weight:700;color:#94a3b8;">JONIKWIRIA Technology Limited</p>
+              <p style="margin:0 0 10px 0;">Building People. Building Technology.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  return sendMail(user.email, subject, html);
+}
+
+/**
+ * Send confirmation that password was successfully reset
+ * @param {object} user - User object { firstName, email }
+ */
+async function sendPasswordResetSuccessEmail(user) {
+  const subject = `Your JONIKWIRIA Password Has Been Changed`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0b132b;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0b132b;padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#111c44;border:1px solid #1e293b;border-radius:16px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);padding:30px;text-align:center;">
+              <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;">Password Updated Successfully</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 40px;color:#cbd5e1;font-size:15px;line-height:1.7;">
+              <p>Hello <strong>${user.firstName || 'User'}</strong>,</p>
+              <p>This email confirms that the password for your account (<strong>${user.email}</strong>) has been successfully changed.</p>
+              <p style="color:#ef4444;font-size:13px;">If you did not perform this change, please contact our support team immediately at <a href="mailto:info@jonikwiria.com" style="color:#60a5fa;">info@jonikwiria.com</a> to lock and secure your account.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#080c14;padding:18px;text-align:center;font-size:11px;color:#64748b;">
+              JONIKWIRIA Technology Limited • Account Security
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  return sendMail(user.email, subject, html);
+}
+
 module.exports = {
   sendMail,
   sendBulkMail,
@@ -586,5 +830,9 @@ module.exports = {
   getCertificateEmailTemplate,
   sendCertificateIssuedEmail,
   sendSubscriberWelcomeEmail,
-  sendSubscriberBroadcastEmail
+  sendSubscriberBroadcastEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendPasswordResetSuccessEmail
 };
+

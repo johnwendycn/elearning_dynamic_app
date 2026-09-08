@@ -43,12 +43,14 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     const res = await api.post('/auth/register', formData);
     if (res.data.success) {
-      const { user: userData, token: jwtToken } = res.data.data;
-      setUser(userData);
-      setToken(jwtToken);
-      localStorage.setItem('token', jwtToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return userData;
+      const data = res.data.data;
+      if (data?.token) {
+        setUser(data.user);
+        setToken(data.token);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      return data;
     }
   };
 

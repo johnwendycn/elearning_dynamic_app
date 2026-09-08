@@ -17,8 +17,11 @@ import {
   LayoutDashboard,
   Shield,
   KeyRound,
-  Info
+  Info,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
+import api from '../services/api';
 import { getFullMediaUrl } from '../utils/mediaUrl';
 
 const Login = () => {
@@ -48,6 +51,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [resendStatus, setResendStatus] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
   const [showAdminHelp, setShowAdminHelp] = useState(false);
 
@@ -55,11 +61,28 @@ const Login = () => {
     setEmail('johnwendynwaukwa@gmail.com');
     setPassword('111111');
     setError('');
+    setIsUnverified(false);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    setResendingVerification(true);
+    setResendStatus({ type: '', text: '' });
+    try {
+      const res = await api.post('/auth/resend-verification', { email });
+      setResendStatus({ type: 'success', text: res.data.message || 'Verification link sent! Please check your email.' });
+    } catch (err) {
+      setResendStatus({ type: 'error', text: err.response?.data?.error || 'Failed to send verification link.' });
+    } finally {
+      setResendingVerification(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsUnverified(false);
+    setResendStatus({ type: '', text: '' });
     setLoading(true);
 
     try {
@@ -88,6 +111,9 @@ const Login = () => {
       if (!err.response) {
         setError('Cannot connect to the server. Please ensure the backend server and MySQL database are running.');
       } else {
+        if (err.response?.data?.isUnverified) {
+          setIsUnverified(true);
+        }
         setError(err.response?.data?.error || 'Invalid email or password. Please verify and try again.');
       }
     } finally {
@@ -260,7 +286,7 @@ const Login = () => {
 
           {error && (
             <div
-              className="flex items-center gap-2 animate-fade-in"
+              className="animate-fade-in"
               style={{
                 background: 'rgba(239, 68, 68, 0.12)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -271,8 +297,39 @@ const Login = () => {
                 fontSize: '0.875rem'
               }}
             >
-              <AlertCircle size={18} style={{ flexShrink: 0 }} />
-              <span>{error}</span>
+              <div className="flex items-center gap-2" style={{ marginBottom: isUnverified ? '0.6rem' : 0 }}>
+                <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+
+              {isUnverified && (
+                <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.25)', paddingTop: '0.6rem', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {resendStatus.text && (
+                    <div style={{ fontSize: '0.8rem', color: resendStatus.type === 'success' ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                      {resendStatus.text}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                    className="btn btn-sm btn-primary"
+                    style={{ alignSelf: 'flex-start', fontSize: '0.78rem', padding: '0.35rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    {resendingVerification ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Sending Link...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={13} />
+                        <span>Resend Verification Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -310,6 +367,18 @@ const Login = () => {
                 <label className="form-label" style={{ marginBottom: 0, fontWeight: 600, fontSize: '0.85rem' }}>
                   Password
                 </label>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--primary)',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                  className="hover:underline"
+                >
+                  Forgot Password?
+                </Link>
               </div>
               <div style={{ position: 'relative' }}>
                 <Lock
