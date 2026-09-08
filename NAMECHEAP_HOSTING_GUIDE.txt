@@ -1,0 +1,616 @@
+================================================================================
+  JONIKWIRIA TECHNOLOGY LIMITED
+  Namecheap Stellar Business Plan - Full Deployment Guide
+  Stack: Node.js + Express + MySQL + Vite (React) + Sequelize
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+  SECTION 1  - Prerequisites & Local Preparation
+  SECTION 2  - Preparing the Frontend (React/Vite Build)
+  SECTION 3  - Preparing the Backend (Node.js/Express)
+  SECTION 4  - Setting Up the MySQL Database on cPanel
+  SECTION 5  - Uploading Files to Namecheap via cPanel
+  SECTION 6  - Configuring Node.js on cPanel (Passenger)
+  SECTION 7  - Environment Variables (.env) Setup
+  SECTION 8  - Running Database Migrations & Seeding
+  SECTION 9  - Configuring the Domain & SSL
+  SECTION 10 - Setting Up Email (SMTP) via Namecheap
+  SECTION 11 - Final Checks & Go-Live Checklist
+  SECTION 12 - Troubleshooting Common Issues
+
+================================================================================
+SECTION 1 - PREREQUISITES & LOCAL PREPARATION
+================================================================================
+
+Before you begin, make sure you have the following:
+
+  [x] Namecheap Stellar Business hosting account (active)
+  [x] A domain name pointed to Namecheap nameservers
+  [x] cPanel login credentials (from Namecheap welcome email)
+  [x] FileZilla FTP client installed (free: https://filezilla-project.org)
+      OR SSH access enabled on your hosting account
+  [x] Node.js installed locally (v18+) to build the frontend
+  [x] The full project folder: c:\jonikwiria\
+
+IMPORTANT NOTE ON NAMECHEAP STELLAR BUSINESS:
+  - It supports Node.js via cPanel's "Node.js Selector" (Passenger)
+  - Database: MySQL (NOT PostgreSQL). This app uses MySQL2 + Sequelize - OK!
+  - Node.js version available: 18.x, 20.x (choose 20.x for best compatibility)
+  - Each Node.js app runs on a private port internally; cPanel/Passenger
+    routes public traffic to it automatically - you do NOT need to open ports.
+
+================================================================================
+SECTION 2 - PREPARING THE FRONTEND (REACT/VITE BUILD)
+================================================================================
+
+STEP 2.1 - Update the API Base URL for Production
+--------------------------------------------------
+Open this file in a text editor:
+  c:\jonikwiria\frontend\src\
+
+Find where your API URL is defined (usually in a config file or directly in
+axios calls). Look for something like:
+  http://localhost:5000
+
+Replace ALL instances with your actual domain, for example:
+  https://www.jonikwiria.com/api
+  OR
+  https://api.jonikwiria.com   (if using a subdomain for the API)
+
+  RECOMMENDED approach - create/edit:
+  c:\jonikwiria\frontend\.env.production
+
+  Add this line:
+  VITE_API_BASE_URL=https://www.jonikwiria.com
+
+  Then in your axios/fetch calls, use:
+  import.meta.env.VITE_API_BASE_URL
+
+STEP 2.2 - Build the Frontend for Production
+---------------------------------------------
+Open Command Prompt / PowerShell on your computer.
+Navigate to the frontend folder:
+
+  cd c:\jonikwiria\frontend
+
+Install dependencies (if not already done):
+  npm install
+
+Build for production:
+  npm run build
+
+This creates a folder:
+  c:\jonikwiria\frontend\dist\
+
+This "dist" folder contains your compiled React app. It is a set of static
+HTML/CSS/JS files - this is what you upload to the public web folder.
+
+STEP 2.3 - Update Vite Config for Proper Base Path
+---------------------------------------------------
+If your app will run at the ROOT of your domain (e.g., https://jonikwiria.com),
+your vite.config.js is fine as-is.
+
+If it runs in a SUBDIRECTORY (e.g., https://jonikwiria.com/app/), open:
+  c:\jonikwiria\frontend\vite.config.js
+
+Add the base property:
+  export default defineConfig({
+    plugins: [react()],
+    base: '/app/',       <-- change to your subdirectory
+  })
+
+Then rebuild: npm run build
+
+================================================================================
+SECTION 3 - PREPARING THE BACKEND (Node.js/Express)
+================================================================================
+
+STEP 3.1 - Clean Up for Production
+------------------------------------
+On your local machine, inside c:\jonikwiria\backend\:
+
+  a) Delete the node_modules folder (it will be reinstalled on the server):
+     In File Explorer: delete the folder  backend\node_modules\
+
+  b) Make sure your package.json has a "start" script:
+     Open c:\jonikwiria\backend\package.json
+     Verify this line exists under "scripts":
+       "start": "node src/server.js"
+     (It already does - confirmed.)
+
+  c) Remove devDependencies from being installed on server.
+     You will run "npm install --production" on the server.
+
+STEP 3.2 - Update server.js for Production
+--------------------------------------------
+The server currently only syncs DB in development mode:
+  if (process.env.NODE_ENV === 'development') {
+      await sequelize.sync();
+  }
+
+For the FIRST deployment only, you need to sync. We handle this in Section 8.
+
+STEP 3.3 - Configure CORS for Production
+------------------------------------------
+Open c:\jonikwiria\backend\src\app.js
+
+Find:  app.use(cors());
+
+Replace with your domain:
+  app.use(cors({
+    origin: [
+      'https://www.jonikwiria.com',
+      'https://jonikwiria.com'
+    ],
+    credentials: true
+  }));
+
+Save the file.
+
+STEP 3.4 - Serve Frontend from Backend (Single App Setup)
+-----------------------------------------------------------
+Since both frontend and backend run under the same domain, configure Express
+to serve the built React app. This is the simplest approach.
+
+Add the following to the BOTTOM of c:\jonikwiria\backend\src\app.js
+(BEFORE the error handling middleware):
+
+  // ---- ADD THIS BLOCK FOR PRODUCTION ----
+  if (process.env.NODE_ENV === 'production') {
+    const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+    app.use(express.static(frontendBuildPath));
+
+    // Handle React Router (SPA fallback)
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    });
+  }
+  // ----------------------------------------
+
+This means your Node.js app will serve BOTH the API and the React frontend.
+
+NOTE: If you prefer to host the frontend in public_html separately (static),
+skip this step and follow Section 5b instead.
+
+================================================================================
+SECTION 4 - SETTING UP THE MYSQL DATABASE ON cPANEL
+================================================================================
+
+STEP 4.1 - Log In to cPanel
+-----------------------------
+  1. Go to: https://cpanel.jonikwiria.com
+     OR:    https://www.jonikwiria.com/cpanel
+     OR:    Access via Namecheap Account > Hosting > cPanel button
+  2. Enter your cPanel username and password
+
+STEP 4.2 - Create the MySQL Database
+--------------------------------------
+  1. In cPanel, search for "MySQL Databases" - click it
+  2. Under "Create New Database":
+     - Database Name: jonik_db
+       (cPanel prepends your username, so it becomes: cpanelusername_jonik_db)
+     - Click "Create Database"
+  3. Under "MySQL Users" > "Add New User":
+     - Username:  jonik_user
+     - Password:  [Create a STRONG password - save it!]
+     - Click "Create User"
+  4. Under "Add User to Database":
+     - Select the user:     cpanelusername_jonik_user
+     - Select the database: cpanelusername_jonik_db
+     - Click "Add"
+  5. On the privileges screen: Check "ALL PRIVILEGES" -> "Make Changes"
+
+STEP 4.3 - Note Your Database Credentials
+-------------------------------------------
+Write these down - you'll need them for the .env file:
+
+  DB_HOST     = localhost
+  DB_PORT     = 3306
+  DB_NAME     = cpanelusername_jonik_db   (replace cpanelusername!)
+  DB_USER     = cpanelusername_jonik_user (replace cpanelusername!)
+  DB_PASSWORD = [the password you created]
+
+================================================================================
+SECTION 5 - UPLOADING FILES TO NAMECHEAP VIA cPANEL
+================================================================================
+
+You will upload TWO sets of files:
+  A) The BACKEND (Node.js app) - goes into a dedicated app folder
+  B) The FRONTEND DIST - ONLY if you're NOT using the backend to serve it
+
+--- METHOD A: Using File Manager in cPanel ---
+
+STEP 5.1 - Open File Manager
+  1. In cPanel, click "File Manager"
+  2. Navigate to your home directory: /home/cpanelusername/
+
+STEP 5.2 - Create the App Directory
+  1. In /home/cpanelusername/, create a new folder: jonikwiria_app
+     (Do NOT put Node.js apps inside public_html - security risk!)
+  2. Your app path will be: /home/cpanelusername/jonikwiria_app/
+
+STEP 5.3 - Upload Backend Files
+  1. Compress your backend folder on your computer:
+     Right-click c:\jonikwiria\backend -> Send to -> Compressed (zip) folder
+     Name it: backend.zip
+
+     IMPORTANT: Make sure node_modules is NOT included in the zip!
+     (If it was deleted in Step 3.1, you're fine)
+
+  2. In File Manager, navigate to /home/cpanelusername/jonikwiria_app/
+  3. Click "Upload" -> upload backend.zip
+  4. After upload, right-click backend.zip -> "Extract"
+  5. The contents will appear inside jonikwiria_app/
+
+  Final structure should look like:
+    /home/cpanelusername/jonikwiria_app/
+      src/
+        app.js
+        server.js
+        controllers/
+        models/
+        routes/
+        ...
+      package.json
+      .env              <-- (you'll create this in Section 7)
+
+STEP 5.4 - Upload Frontend Build (if serving separately)
+  If you chose to serve the frontend as static files (not via Express):
+  1. Compress c:\jonikwiria\frontend\dist\ -> dist.zip
+  2. Upload dist.zip to /home/cpanelusername/public_html/
+  3. Extract it - files will appear in public_html/
+  4. Make sure index.html is directly in public_html/ (not in a subfolder)
+
+--- METHOD B: Using FTP (FileZilla) ---
+
+STEP 5.5 - Connect via FTP
+  1. Open FileZilla
+  2. File > Site Manager > New Site
+     - Host:     ftp.jonikwiria.com  (or your domain)
+     - Port:     21
+     - Protocol: FTP
+     - Login:    Normal
+     - User:     your cPanel username
+     - Password: your cPanel password
+  3. Click Connect
+
+STEP 5.6 - Upload Files via FTP
+  - Left panel = your local computer
+  - Right panel = your server
+  - Navigate to /home/cpanelusername/ on the right
+  - Create folder: jonikwiria_app
+  - Drag and drop all backend files from left to right
+    (EXCLUDE node_modules folder!)
+
+================================================================================
+SECTION 6 - CONFIGURING NODE.JS ON cPANEL (PASSENGER)
+================================================================================
+
+This is the most critical section. Namecheap Stellar Business uses
+"Node.js Selector" powered by Passenger to run Node.js apps.
+
+STEP 6.1 - Open Node.js Selector
+  1. In cPanel, search for "Node.js" -> Click "Node.js Selector"
+     (May appear as "Setup Node.js App")
+  2. Click "CREATE APPLICATION"
+
+STEP 6.2 - Configure the Application
+  Fill in the following fields:
+
+  Node.js version:      20.x   (select the latest 20.x available)
+  Application mode:     Production
+  Application root:     jonikwiria_app
+                        (The folder you created in Step 5.2)
+  Application URL:      jonikwiria.com
+                        (Or www.jonikwiria.com - your primary domain)
+  Application startup
+  file:                 src/server.js
+
+  Click "CREATE" to save.
+
+STEP 6.3 - Install Node.js Dependencies on Server
+  After creating the app, you'll see the application listed.
+  
+  1. Click on your application to open its settings
+  2. You will see a button: "Run NPM Install"
+     Click it - this installs all packages from package.json on the server.
+     Wait for it to complete (may take 1-3 minutes).
+
+  Alternatively, use the Terminal in cPanel:
+  1. In cPanel, search for "Terminal" -> Click it
+  2. Run:
+       cd ~/jonikwiria_app
+       npm install --production
+
+STEP 6.4 - Restart the Application
+  After installing dependencies:
+  1. Go back to Node.js Selector
+  2. Find your app -> Click "RESTART"
+  
+  The app is now running! Passenger handles keeping it alive and restarting
+  it if it crashes.
+
+================================================================================
+SECTION 7 - ENVIRONMENT VARIABLES (.env) SETUP
+================================================================================
+
+STEP 7.1 - Create the .env File on Server
+  1. In cPanel File Manager, navigate to /home/cpanelusername/jonikwiria_app/
+  2. Click "New File" -> name it: .env
+  3. Click "Edit" to open it
+
+STEP 7.2 - Add All Environment Variables
+  Copy the following template and fill in your real values:
+
+  ---- START OF .env FILE ----
+
+  # Application
+  NODE_ENV=production
+  PORT=5000
+
+  # Database (MySQL)
+  DB_HOST=localhost
+  DB_PORT=3306
+  DB_NAME=cpanelusername_jonik_db
+  DB_USER=cpanelusername_jonik_user
+  DB_PASSWORD=YourStrongPasswordHere
+  DB_DIALECT=mysql
+
+  # JWT Secret (use a long random string - 64+ characters)
+  JWT_SECRET=ReplaceThisWithAVeryLongRandomSecretKeyForJonikwiriaApp2024!
+
+  # Application URL (your live domain)
+  APP_URL=https://www.jonikwiria.com
+  FRONTEND_URL=https://www.jonikwiria.com
+
+  # Email (SMTP) - See Section 10 for Namecheap email setup
+  MAIL_HOST=mail.jonikwiria.com
+  MAIL_PORT=465
+  MAIL_SECURE=true
+  MAIL_USER=noreply@jonikwiria.com
+  MAIL_PASS=YourEmailPassword
+  MAIL_FROM="Jonikwiria Technology Limited <noreply@jonikwiria.com>"
+
+  ---- END OF .env FILE ----
+
+  4. Click "Save Changes"
+
+STEP 7.3 - Alternatively, Set via Node.js Selector
+  In Node.js Selector > your app > "Environment Variables" section:
+  Add each key-value pair there. This is more secure than the .env file method.
+
+================================================================================
+SECTION 8 - RUNNING DATABASE MIGRATIONS & SEEDING
+================================================================================
+
+Since the app uses Sequelize, you need to create all the database tables.
+
+STEP 8.1 - Temporarily Enable DB Sync (First Deployment Only)
+  1. In File Manager, edit: /home/cpanelusername/jonikwiria_app/src/server.js
+  2. Temporarily change this section:
+
+     BEFORE:
+       if (process.env.NODE_ENV === 'development') {
+           await sequelize.sync();
+       }
+
+     AFTER (temporary change):
+       // TEMPORARY: remove this condition after first deployment
+       await sequelize.sync({ force: false });
+
+  3. Save the file.
+
+STEP 8.2 - Restart the App to Run Sync
+  1. Go to Node.js Selector -> Restart your app
+  2. The app will start and Sequelize will automatically CREATE all the
+     database tables in MySQL.
+  3. Check the app is running by visiting: https://www.jonikwiria.com/health
+     You should see: {"status":"OK","timestamp":"..."}
+
+STEP 8.3 - Revert the Sync Change (Important!)
+  1. Go back to server.js in File Manager
+  2. Revert to the original:
+       if (process.env.NODE_ENV === 'development') {
+           await sequelize.sync();
+       }
+  3. Save and restart the app again.
+  
+  REASON: Leaving sync enabled can cause issues with duplicate indexes on
+  subsequent restarts. One-time sync is sufficient.
+
+STEP 8.4 - Optional: Import Seed Data
+  If you have seed scripts (seedAcademicData.js, seedEvents.js, etc.):
+  1. Open cPanel Terminal
+  2. Run:
+       cd ~/jonikwiria_app
+       node src/seedAcademicData.js
+       node src/seedEvents.js
+       node src/seedFooterAndPolicies.js
+
+================================================================================
+SECTION 9 - CONFIGURING THE DOMAIN & SSL
+================================================================================
+
+STEP 9.1 - Point Your Domain to Hosting
+  If you registered your domain on Namecheap and hosting is also Namecheap,
+  this may already be done automatically.
+  
+  To verify: In Namecheap Account -> Domain List -> Manage your domain
+  -> Nameservers -> Should show "Namecheap Web Hosting DNS"
+
+  If not, set nameservers to:
+    dns1.namecheaphosting.com
+    dns2.namecheaphosting.com
+
+STEP 9.2 - Enable Free SSL (Let's Encrypt)
+  1. In cPanel, search for "SSL/TLS" -> "AutoSSL"
+  2. Click "Run AutoSSL" to install a free SSL certificate
+  3. Wait 5-10 minutes for it to activate
+  4. Verify by visiting: https://www.jonikwiria.com (should show the padlock)
+
+STEP 9.3 - Force HTTPS Redirect
+  In File Manager, edit (or create): /home/cpanelusername/public_html/.htaccess
+
+  Add these lines at the TOP:
+  ---- START ----
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  ---- END ----
+
+================================================================================
+SECTION 10 - SETTING UP EMAIL (SMTP) VIA NAMECHEAP
+================================================================================
+
+STEP 10.1 - Create a Professional Email Account
+  1. In cPanel, click "Email Accounts"
+  2. Click "Create" button
+  3. Fill in:
+     - Domain:    jonikwiria.com
+     - Username:  noreply       (creates noreply@jonikwiria.com)
+     - Password:  [strong password]
+  4. Create another for admin if needed: admin@jonikwiria.com
+  5. Click "Create Account"
+
+STEP 10.2 - Get SMTP Settings
+  SMTP Server:    mail.jonikwiria.com
+  SMTP Port:      465  (SSL)  or  587 (TLS)
+  Username:       noreply@jonikwiria.com
+  Password:       [the password you set]
+  Encryption:     SSL (port 465) or STARTTLS (port 587)
+
+STEP 10.3 - Update .env with Email Settings
+  These are the settings to use in your .env file (already shown in Section 7):
+  
+  MAIL_HOST=mail.jonikwiria.com
+  MAIL_PORT=465
+  MAIL_SECURE=true
+  MAIL_USER=noreply@jonikwiria.com
+  MAIL_PASS=YourEmailPassword
+
+STEP 10.4 - Test Email Sending
+  After deployment, trigger a certificate email from the app to verify
+  emails are being sent and received correctly.
+
+  Common issue: If emails go to spam, set up SPF and DKIM records:
+  In cPanel -> Email -> "Email Deliverability" -> "Repair" for your domain.
+
+================================================================================
+SECTION 11 - FINAL CHECKS & GO-LIVE CHECKLIST
+================================================================================
+
+Run through this checklist before announcing the site is live:
+
+  [ ] 1. Visit https://www.jonikwiria.com - homepage loads correctly
+  [ ] 2. Visit https://www.jonikwiria.com/health - returns {"status":"OK"}
+  [ ] 3. Login as admin works correctly
+  [ ] 4. API calls are going to production URL (not localhost)
+  [ ] 5. Database tables are created (can check in cPanel > phpMyAdmin)
+  [ ] 6. SSL padlock is showing (HTTPS works)
+  [ ] 7. HTTP redirects to HTTPS (test: http://jonikwiria.com)
+  [ ] 8. Email sending works (request a certificate or test contact form)
+  [ ] 9. Media/file uploads work (upload a file via admin panel)
+  [ ] 10. Certificate verification page is accessible and working
+  [ ] 11. Mobile version of the site looks correct
+  [ ] 12. All admin panel sections are accessible
+
+PERFORMANCE TIPS:
+  - In cPanel, enable "Gzip Compression" for faster page loads
+  - Enable "Hotlink Protection" to prevent image theft
+  - Set up "Cron Jobs" in cPanel for any scheduled tasks
+
+================================================================================
+SECTION 12 - TROUBLESHOOTING COMMON ISSUES
+================================================================================
+
+ISSUE: "Cannot GET /" - App shows error or blank page
+  FIX:  Check Node.js Selector - ensure app is RUNNING (not stopped)
+        Check startup file is set to: src/server.js
+        Check the .env file exists and has correct values
+        View error log in Node.js Selector -> "error_log" link
+
+ISSUE: "Database connection failed"
+  FIX:  Verify DB credentials in .env match exactly what's in cPanel
+        DB_HOST must be "localhost" (not 127.0.0.1 in some setups)
+        Confirm the DB user has ALL PRIVILEGES on the database
+
+ISSUE: API calls fail with CORS error in browser console
+  FIX:  Check your CORS configuration in app.js
+        Make sure your production domain is in the "origin" array
+        Include both with and without "www" prefix
+
+ISSUE: React app shows correct homepage but refreshing a page gives 404
+  FIX:  This is the SPA (Single Page Application) fallback issue.
+        If serving from Express: The wildcard route (app.get('*', ...)) 
+        must be at the bottom of app.js - after all API routes.
+        
+        If serving frontend from public_html (static files):
+        Create public_html/.htaccess with:
+        ---- START ----
+        RewriteEngine On
+        RewriteBase /
+        RewriteRule ^index\.html$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [L]
+        ---- END ----
+
+ISSUE: Email not sending / Nodemailer error
+  FIX:  Double-check MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS in .env
+        If using port 587, set MAIL_SECURE=false in .env
+        Check Namecheap's email error logs in cPanel -> "Track Delivery"
+
+ISSUE: File uploads (media) not working
+  FIX:  Check the media folder exists: /home/cpanelusername/jonikwiria_app/src/media/
+        Ensure it has write permissions: chmod 755 src/media (via Terminal)
+        In cPanel -> File Manager, right-click folder -> "Change Permissions"
+        Set to 755.
+
+ISSUE: Node.js app keeps stopping/crashing
+  FIX:  View error log in Node.js Selector
+        Check for missing environment variables
+        Ensure all npm packages installed: run "npm install --production" again
+        Passenger will auto-restart on crashes, but persistent crashes indicate
+        a code error - check the logs!
+
+ISSUE: "Cannot find module" error in logs
+  FIX:  cd ~/jonikwiria_app && npm install --production
+        Restart the app after.
+
+================================================================================
+  QUICK REFERENCE - SERVER PATHS
+================================================================================
+
+  App Root:       /home/YOURUSERNAME/jonikwiria_app/
+  Public HTML:    /home/YOURUSERNAME/public_html/
+  App Logs:       Check Node.js Selector -> Error Log link
+  .env File:      /home/YOURUSERNAME/jonikwiria_app/.env
+  Media Folder:   /home/YOURUSERNAME/jonikwiria_app/src/media/
+  Frontend Dist:  /home/YOURUSERNAME/public_html/ (if static)
+                  OR /home/YOURUSERNAME/jonikwiria_app/../frontend/dist/ (if via Express)
+
+  DATABASE
+  Host:     localhost
+  Port:     3306
+  Tool:     cPanel -> phpMyAdmin (to browse/manage DB tables visually)
+
+  NODE.JS
+  Selector: cPanel -> "Node.js Selector" or "Setup Node.js App"
+  Version:  Node.js 20.x
+  Entry:    src/server.js
+  Mode:     Production
+
+================================================================================
+  SUPPORT CONTACTS
+================================================================================
+
+  Namecheap Support:  https://www.namecheap.com/support/
+  Live Chat:          Available 24/7 via Namecheap dashboard
+  Knowledge Base:     https://www.namecheap.com/support/knowledgebase/
+
+================================================================================
+  END OF DOCUMENT
+  Prepared for: Jonikwiria Technology Limited
+  Application:  Jonikwiria Learning Management System
+================================================================================
