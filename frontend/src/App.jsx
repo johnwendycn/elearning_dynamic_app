@@ -10,6 +10,7 @@ import { ShieldAlert } from 'lucide-react';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import CookieConsent from './components/common/CookieConsent';
+import ScrollToTop from './components/common/ScrollToTop';
 import Sidebar from './components/admin/Sidebar';
 
 // Public Pages
@@ -212,7 +213,8 @@ function App() {
         <AuthProvider>
           <AlertProvider>
             <Router>
-            <Routes>
+              <ScrollToTop />
+              <Routes>
               {/* Public Website & Student Routes */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
