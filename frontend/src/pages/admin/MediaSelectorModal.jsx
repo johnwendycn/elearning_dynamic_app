@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { File, UploadCloud, Loader2, Image as ImageIcon } from 'lucide-react';
 import api from '../../services/api';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const MediaSelectorModal = ({ isOpen, onClose, onSelect, title = "Select Media Asset" }) => {
   const [mediaList, setMediaList] = useState([]);
@@ -55,9 +56,6 @@ const MediaSelectorModal = ({ isOpen, onClose, onSelect, title = "Select Media A
 
   if (!isOpen) return null;
 
-  const backendHost = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:5000';
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100050, padding: '1rem' }}>
@@ -124,7 +122,7 @@ const MediaSelectorModal = ({ isOpen, onClose, onSelect, title = "Select Media A
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.85rem', marginBottom: '1rem' }}>
                   {mediaList.map((m) => {
                     const isImg = m.mimeType?.startsWith('image/') || m.url?.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
-                    const fullUrl = m.url.startsWith('http') ? m.url : `${backendHost}${m.url}`;
+                    const fullUrl = getFullMediaUrl(m.url);
                     return (
                       <div
                         key={m.id}

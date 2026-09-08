@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useOrgSettings } from '../../context/OrgSettingsContext';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 import {
   Gauge,
   FileText,
@@ -65,11 +66,8 @@ const Sidebar = ({ collapsed, onNavigate }) => {
 
   const initials = `${user?.firstName?.[0] || 'A'}${user?.lastName?.[0] || 'U'}`;
 
-  const backendHost = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:5000';
   const avatarUrl = user?.profilePicture?.url
-    ? (user.profilePicture.url.startsWith('http') ? user.profilePicture.url : `${backendHost}${user.profilePicture.url}`)
+    ? getFullMediaUrl(user.profilePicture.url)
     : null;
 
   return (
@@ -78,7 +76,7 @@ const Sidebar = ({ collapsed, onNavigate }) => {
       <Link to="/admin" className="brand-link flex items-center gap-2" onClick={onNavigate}>
         <div className="brand-image flex items-center justify-center">
           {logoUrl ? (
-            <img src={`http://localhost:5000${logoUrl}`} alt={siteTitle} style={{ height: '24px', width: 'auto', objectFit: 'contain', borderRadius: '2px' }} />
+            <img src={getFullMediaUrl(logoUrl)} alt={siteTitle} style={{ height: '24px', width: 'auto', objectFit: 'contain', borderRadius: '2px' }} />
           ) : (
             <Layers size={18} />
           )}

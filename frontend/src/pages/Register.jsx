@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ShieldCheck
 } from 'lucide-react';
+import { getFullMediaUrl } from '../utils/mediaUrl';
 
 const Register = () => {
   const { register } = useAuth();
@@ -109,7 +110,7 @@ const Register = () => {
                 }}
               >
                 {logoUrl ? (
-                  <img src={`http://localhost:5000${logoUrl}`} alt={siteTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img src={getFullMediaUrl(logoUrl)} alt={siteTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   <Sparkles size={20} />
                 )}

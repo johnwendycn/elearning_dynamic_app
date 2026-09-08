@@ -10,6 +10,7 @@ import {
 import api from '../../services/api';
 import MediaSelectorModal from './MediaSelectorModal';
 import RichTextEditor from '../../components/common/RichTextEditor';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const BLOCK_TYPES = [
   { type: 'about_intro', label: 'About Us Intro', icon: Users, desc: 'Headline, tagline, paragraphs, CTA & 3 feature highlights' },
@@ -26,15 +27,6 @@ const BLOCK_TYPES = [
   { type: 'carousel', label: 'Carousel Slider', icon: Tv, desc: 'Embed a slideshow from Carousel Manager' },
   { type: 'news_feed', label: 'News Feed', icon: Radio, desc: 'Dynamic stream of published news posts' }
 ];
-
-const getFullMediaUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-  const baseUrl = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:5000';
-  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 const PageManager = () => {
   const { hasPermission } = useAuth();

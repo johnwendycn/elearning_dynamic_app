@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import MediaSelectorModal from './MediaSelectorModal';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const TAB_PERSONAL = 'personal';
 const TAB_PROFILE = 'profile';
@@ -112,12 +113,8 @@ const AdminProfile = () => {
   const [avatarAlert, setAvatarAlert] = useState({ type: '', msg: '' });
   const fileInputRef = useRef(null);
 
-  const backendHost = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:5000';
-
   const avatarUrl = user?.profilePicture?.url
-    ? (user.profilePicture.url.startsWith('http') ? user.profilePicture.url : `${backendHost}${user.profilePicture.url}`)
+    ? getFullMediaUrl(user.profilePicture.url)
     : null;
 
   /* Handle selecting an existing image from Media Library */

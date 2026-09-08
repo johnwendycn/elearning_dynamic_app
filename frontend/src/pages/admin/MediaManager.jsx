@@ -7,6 +7,7 @@ import {
   ChevronLeftIcon, ChevronRightIcon, Edit2, Plus, Save
 } from 'lucide-react';
 import api from '../../services/api';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const MediaManager = () => {
   const { hasPermission } = useAuth();
@@ -334,7 +335,7 @@ const MediaManager = () => {
                           >
                             {isImg ? (
                               <img
-                                src={m.url.startsWith('http') ? m.url : `http://localhost:5000${m.url}`}
+                                src={getFullMediaUrl(m.url)}
                                 alt={m.filename}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
@@ -447,7 +448,7 @@ const MediaManager = () => {
                             <td style={{ width: '60px' }}>
                               <div style={{ width: '40px', height: '40px', background: 'var(--bg-app)', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {isImg ? (
-                                  <img src={m.url.startsWith('http') ? m.url : `http://localhost:5000${m.url}`} alt={m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={getFullMediaUrl(m.url)} alt={m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                   <File size={18} color="var(--text-muted)" />
                                 )}
@@ -535,7 +536,7 @@ const MediaManager = () => {
                   border: '1px solid var(--border)'
                 }}>
                   {selectedMedia.mimeType?.startsWith('image/') || selectedMedia.url?.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
-                    <img src={selectedMedia.url.startsWith('http') ? selectedMedia.url : `http://localhost:5000${selectedMedia.url}`} alt={selectedMedia.filename} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={getFullMediaUrl(selectedMedia.url)} alt={selectedMedia.filename} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <File size={48} color="var(--text-muted)" />
                   )}
@@ -572,7 +573,7 @@ const MediaManager = () => {
                   </button>
 
                   <a
-                    href={selectedMedia.url.startsWith('http') ? selectedMedia.url : `http://localhost:5000${selectedMedia.url}`}
+                    href={getFullMediaUrl(selectedMedia.url)}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-info w-full btn-sm"

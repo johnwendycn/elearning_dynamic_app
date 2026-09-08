@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaSelectorModal from './MediaSelectorModal';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const HeaderManager = () => {
   const { hasPermission } = useAuth();
@@ -377,7 +378,7 @@ const HeaderManager = () => {
                     <div className="flex items-center gap-3" style={{ background: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ width: '60px', height: '60px', background: '#ffffff', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
                         {selectedLogo ? (
-                          <img src={selectedLogo.url.startsWith('http') ? selectedLogo.url : `http://localhost:5000${selectedLogo.url}`} alt="Selected logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          <img src={getFullMediaUrl(selectedLogo.url)} alt="Selected logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
                           <Image size={24} color="var(--text-muted)" />
                         )}
@@ -610,7 +611,7 @@ const HeaderManager = () => {
                       <div className="flex items-center gap-2">
                         {formData.showLogo && resolvedLogoUrl && (
                           <img
-                            src={`http://localhost:5000${resolvedLogoUrl}`}
+                            src={getFullMediaUrl(resolvedLogoUrl)}
                             alt={siteTitle}
                             style={{
                               height: '40px',

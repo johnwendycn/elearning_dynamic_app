@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { useOrgSettings } from '../../context/OrgSettingsContext';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 /**
  * Unified, professional, dynamic PageBanner component.
@@ -34,12 +35,8 @@ const PageBanner = ({
     ? `linear-gradient(135deg, #070d1d 0%, ${orgSettings.secondaryColor} 55%, ${orgSettings.primaryColor} 100%)`
     : 'linear-gradient(135deg, #070d1d 0%, #0c1938 50%, #152046 100%)';
 
-  // Resolve full image URL if relative
-  const resolvedBgImage = bgImage
-    ? (bgImage.startsWith('http://') || bgImage.startsWith('https://') || bgImage.startsWith('data:')
-        ? bgImage
-        : `${(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : 'http://localhost:5000')}${bgImage.startsWith('/') ? '' : '/'}${bgImage}`)
-    : null;
+  // Resolve full image URL dynamically
+  const resolvedBgImage = bgImage ? getFullMediaUrl(bgImage) : null;
 
   const backgroundStyle = {
     background: resolvedBgImage

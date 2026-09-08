@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { getFullMediaUrl } from '../utils/mediaUrl';
 
 const OrgSettingsContext = createContext(null);
 
@@ -10,21 +11,16 @@ export const OrgSettingsProvider = ({ children }) => {
 
   const fetchActiveSettings = async () => {
     try {
-      // 1. Fetch organization settings
-      const res = await api.get('/organization-settings');
-      if (res.data.success && res.data.settings?.length > 0) {
-        const active = res.data.settings.find(s => s.status === 'active') || res.data.settings[0];
-        setOrgSettings(active);
-      } else {
-        setOrgSettings(null);
-      }
+      const [settingsRes, headerRes] = await Promise.allSettled([
+        api.get('/organization/active'),
+        api.get('/headers/active')
+      ]);
 
-      // 2. Fetch active header configuration
-      const headerRes = await api.get('/headers/active');
-      if (headerRes.data.success) {
-        setHeaderConfig(headerRes.data.data);
-      } else {
-        setHeaderConfig(null);
+      if (settingsRes.status === 'fulfilled' && settingsRes.value.data?.success) {
+        setOrgSettings(settingsRes.value.data.data);
+      }
+      if (headerRes.status === 'fulfilled' && headerRes.value.data?.success) {
+        setHeaderConfig(headerRes.value.data.data);
       }
     } catch (err) {
       console.error('Failed to load branding settings:', err);
@@ -44,7 +40,7 @@ export const OrgSettingsProvider = ({ children }) => {
 
       // Dynamic favicon
       const faviconUrl = orgSettings.faviconMedia?.url 
-        ? `http://localhost:5000${orgSettings.faviconMedia.url}` 
+        ? getFullMediaUrl(orgSettings.faviconMedia.url) 
         : '/favicon.svg';
       let link = document.querySelector("link[rel~='icon']");
       if (!link) {

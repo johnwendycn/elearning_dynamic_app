@@ -11,6 +11,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import VideoPlayer from '../../components/common/VideoPlayer';
 import UnitQuiz from '../../components/common/UnitQuiz';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 // ─── XP / Level system ───────────────────────────────────────────────────────
 const LEVELS = [
@@ -577,7 +578,7 @@ const CoursePlayer = () => {
                             </div>
                           </div>
                           <a
-                            href={file.fileUrl?.startsWith('http') ? file.fileUrl : `http://localhost:5000${file.fileUrl}`}
+                            href={getFullMediaUrl(file.fileUrl)}
                             target="_blank" rel="noopener noreferrer" download
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none', flexShrink: 0 }}
                           >

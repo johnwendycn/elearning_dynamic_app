@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import api from '../../services/api';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const Carousel = ({ carouselId }) => {
   const [carousel, setCarousel] = useState(null);
@@ -56,7 +57,8 @@ const Carousel = ({ carouselId }) => {
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {slides.map((slide, idx) => {
-          const bgImage = slide.media?.url ? `url(http://localhost:5000${slide.media.url})` : undefined;
+          const resolvedUrl = slide.media?.url ? getFullMediaUrl(slide.media.url) : null;
+          const bgImage = resolvedUrl ? `url(${resolvedUrl})` : undefined;
 
           return (
             <div

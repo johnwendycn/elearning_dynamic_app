@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaSelectorModal from './MediaSelectorModal';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const OrganizationSettings = () => {
   const { hasPermission } = useAuth();
@@ -505,7 +506,7 @@ const OrganizationSettings = () => {
                   <div className="flex items-center gap-3" style={{ background: 'var(--bg-app)', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
                     <div style={{ width: '50px', height: '50px', background: 'var(--bg-surface)', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {selectedLogo ? (
-                        <img src={selectedLogo.url.startsWith('http') ? selectedLogo.url : `http://localhost:5000${selectedLogo.url}`} alt="Selected logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img src={getFullMediaUrl(selectedLogo.url)} alt="Selected logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       ) : (
                         <Image size={20} color="var(--text-muted)" />
                       )}
@@ -532,7 +533,7 @@ const OrganizationSettings = () => {
                   <div className="flex items-center gap-3" style={{ background: 'var(--bg-app)', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
                     <div style={{ width: '50px', height: '50px', background: 'var(--bg-surface)', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {selectedFavicon ? (
-                        <img src={selectedFavicon.url.startsWith('http') ? selectedFavicon.url : `http://localhost:5000${selectedFavicon.url}`} alt="Selected favicon" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img src={getFullMediaUrl(selectedFavicon.url)} alt="Selected favicon" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       ) : (
                         <Image size={20} color="var(--text-muted)" />
                       )}

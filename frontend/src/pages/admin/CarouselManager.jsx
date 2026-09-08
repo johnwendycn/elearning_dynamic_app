@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import MediaSelectorModal from './MediaSelectorModal';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const CarouselManager = () => {
   const { hasPermission } = useAuth();
@@ -529,7 +530,7 @@ const CarouselManager = () => {
                             <td>
                               <div style={{ width: '60px', height: '40px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
                                 {s.media?.url ? (
-                                  <img src={`http://localhost:5000${s.media.url}`} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={getFullMediaUrl(s.media.url)} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                   <Image size={16} color="var(--text-muted)" />
                                 )}
@@ -625,7 +626,7 @@ const CarouselManager = () => {
                       width: '100%',
                       height: '100%',
                       backgroundImage: previewSlides[previewIndex]?.media?.url 
-                        ? `url(http://localhost:5000${previewSlides[previewIndex].media.url})` 
+                        ? `url(${getFullMediaUrl(previewSlides[previewIndex].media.url)})` 
                         : 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -888,7 +889,7 @@ const CarouselManager = () => {
                 <div className="flex items-center gap-3" style={{ background: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <div style={{ width: '80px', height: '50px', background: '#ffffff', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
                     {selectedMedia ? (
-                      <img src={`http://localhost:5000${selectedMedia.url}`} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={getFullMediaUrl(selectedMedia.url)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <Image size={22} color="var(--text-muted)" />
                     )}

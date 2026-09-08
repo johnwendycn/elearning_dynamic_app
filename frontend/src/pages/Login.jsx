@@ -19,6 +19,7 @@ import {
   KeyRound,
   Info
 } from 'lucide-react';
+import { getFullMediaUrl } from '../utils/mediaUrl';
 
 const Login = () => {
   const { login } = useAuth();
@@ -121,7 +122,7 @@ const Login = () => {
                 }}
               >
                 {logoUrl ? (
-                  <img src={`http://localhost:5000${logoUrl}`} alt={siteTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img src={getFullMediaUrl(logoUrl)} alt={siteTitle} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   portalTab === 'admin' ? <ShieldCheck size={22} /> : <Sparkles size={20} />
                 )}

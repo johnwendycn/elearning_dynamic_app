@@ -10,6 +10,7 @@ import {
   Home as HomeIcon, Info, PhoneCall, CheckCircle2, Shield, ShieldCheck
 } from 'lucide-react';
 import api from '../../services/api';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -267,7 +268,7 @@ const Header = () => {
 
   const siteTitle = orgSettings?.siteName || 'JONIKWIRIA Limited';
   const logoUrl = headerConfig?.logoMedia?.url || orgSettings?.logoMedia?.url;
-  const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : `http://localhost:5000${logoUrl}`) : null;
+  const fullLogoUrl = logoUrl ? getFullMediaUrl(logoUrl) : null;
 
   const extra = headerConfig?.extraSettings || {
     layout: 'standard',

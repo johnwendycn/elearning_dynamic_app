@@ -9,6 +9,7 @@ import {
 import { useOrgSettings } from '../../context/OrgSettingsContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 
 const Footer = () => {
   const { orgSettings, headerConfig } = useOrgSettings();
@@ -43,7 +44,7 @@ const Footer = () => {
   }, []);
 
   const logoUrl = headerConfig?.logoMedia?.url || orgSettings?.logoMedia?.url;
-  const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : `http://localhost:5000${logoUrl}`) : null;
+  const fullLogoUrl = logoUrl ? getFullMediaUrl(logoUrl) : null;
   const currentYear = new Date().getFullYear();
 
   const handleNewsletterSubmit = async (e) => {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getFullMediaUrl } from '../../utils/mediaUrl';
 import {
   Menu as MenuIcon,
   Sun,
@@ -21,11 +22,8 @@ const AdminNavbar = ({ onToggleSidebar }) => {
   const roleName = user?.roles?.[0]?.name || 'Administrator';
   const initials = `${user?.firstName?.[0] || 'A'}${user?.lastName?.[0] || 'U'}`;
 
-  const backendHost = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:5000';
   const avatarUrl = user?.profilePicture?.url
-    ? (user.profilePicture.url.startsWith('http') ? user.profilePicture.url : `${backendHost}${user.profilePicture.url}`)
+    ? getFullMediaUrl(user.profilePicture.url)
     : null;
 
   return (
