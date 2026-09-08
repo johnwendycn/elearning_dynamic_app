@@ -12,12 +12,13 @@ export const OrgSettingsProvider = ({ children }) => {
   const fetchActiveSettings = async () => {
     try {
       const [settingsRes, headerRes] = await Promise.allSettled([
-        api.get('/organization/active'),
+        api.get('/organization-settings/active'),
         api.get('/headers/active')
       ]);
 
       if (settingsRes.status === 'fulfilled' && settingsRes.value.data?.success) {
-        setOrgSettings(settingsRes.value.data.data);
+        const orgData = settingsRes.value.data.data || (Array.isArray(settingsRes.value.data.settings) ? settingsRes.value.data.settings[0] : null);
+        setOrgSettings(orgData);
       }
       if (headerRes.status === 'fulfilled' && headerRes.value.data?.success) {
         setHeaderConfig(headerRes.value.data.data);

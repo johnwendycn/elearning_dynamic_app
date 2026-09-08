@@ -73,6 +73,7 @@ app.use('/media', express.static(path.join(__dirname, 'media')));
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/organization-settings', organizationSettingRoutes);
+app.use('/api/organization', organizationSettingRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);

@@ -27,6 +27,29 @@ class OrganizationSettingService {
     }
   }
 
+  async getActiveSetting() {
+    try {
+      const setting = await OrganizationSetting.findOne({
+        where: { status: 'active' },
+        include: [
+          { model: Media, as: 'logoMedia' },
+          { model: Media, as: 'faviconMedia' }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+      if (setting) return setting;
+      return await OrganizationSetting.findOne({
+        include: [
+          { model: Media, as: 'logoMedia' },
+          { model: Media, as: 'faviconMedia' }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+    } catch (error) {
+      throw new Error(`Error fetching active organization setting: ${error.message}`);
+    }
+  }
+
   async getAllSettings({ page = 1, limit = 10, search = '', status }) {
     try {
       const parsedPage = parseInt(page, 10) || 1;

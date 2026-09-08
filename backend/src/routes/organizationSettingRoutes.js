@@ -4,6 +4,7 @@ const organizationSettingController = require('../controllers/organizationSettin
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 // Public read
+router.get('/active', organizationSettingController.getActive);
 router.get('/', organizationSettingController.getAll);
 router.get('/:id', organizationSettingController.getById);
 

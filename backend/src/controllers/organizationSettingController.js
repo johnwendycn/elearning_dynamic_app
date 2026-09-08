@@ -1,6 +1,15 @@
 const organizationSettingService = require('../services/organizationSettingService');
 
 class OrganizationSettingController {
+  async getActive(req, res) {
+    try {
+      const setting = await organizationSettingService.getActiveSetting();
+      res.status(200).json({ success: true, data: setting });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
   async create(req, res) {
     try {
       const setting = await organizationSettingService.createSetting(req.body);
